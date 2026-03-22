@@ -156,6 +156,9 @@ def Prepare(dir, app):
   last = 0
   with open(mapFile, "r") as f:
     for s in f:
+      # TODO: BUG - blank lines in the map file produce a = [] after strip().split(),
+      # causing a[1] to raise IndexError. Also s[0] on a truly empty string (rare
+      # but possible) raises IndexError. Add a length guard before accessing a[1].
       if s[0] != "S":
         a = s.strip().split()
         this = int(a[1], 16)
@@ -560,6 +563,9 @@ def Join(dir, dst, uf2):
       line = line + 1
       if line > 3:
         a = s.strip().split()
+        # TODO: BUG - if the line is blank or has no tokens, a == [] and a[0]
+        # raises IndexError. a[-1] has the same problem. Add a guard such as
+        # 'if len(a) >= 2:' before accessing a[0] and a[-1].
         strt = int(a[0], 16)
         info += chr((strt >>  0) & 0xFF)
         info += chr((strt >>  8) & 0xFF)

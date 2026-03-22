@@ -363,8 +363,13 @@ static void ui_update_selected_entry(uint8_t last)
 
 static void ui_clear_directory_list(void){
     if(entry_count <1 ) return;
+    // TODO: BUG - y_start is computed but never used in this function
     int y_start = UI_Y + HEADER_TITLE_HEIGHT + PATH_HEADER_HEIGHT;
 
+    // TODO: BUG - loop variable 'i' is never used inside the body; all iterations
+    // incorrectly clear entries[entry_count] (out-of-bounds when entry_count ==
+    // MAX_ENTRIES) instead of entries[i]. Should be entries[i] and loop should
+    // start at i=0 to also clear the first entry.
     for(int i=1;i<entry_count;i++){
         strncpy(entries[entry_count].name, "", sizeof(entries[entry_count].name) - 1);
         entries[entry_count].name[sizeof(entries[entry_count].name) - 1] = '\0';
@@ -432,6 +437,8 @@ static void ui_draw_battery_status(){
     if(pcnt < 0) return;
     int level = pcnt * 13 / 100;
     int pad = 0;
+    // TODO: BUG - sprintf with no size limit; if keypad_get_battery() returns a
+    // value outside 0-100 the format string could overflow buf[8]. Use snprintf.
     sprintf(buf,"%d%%",pcnt);
     int y = UI_Y;
     if(pcnt < 10) { pad = 8;}

@@ -439,6 +439,10 @@ void GPS_parse(char *nmea) {
     // found GGA
     char *p = nmea;
     // get time
+    // TODO: BUG - strchr() can return NULL if ',' is not found; adding +1 to
+    // NULL and then dereferencing causes undefined behaviour. Every p = strchr(...)
+    // call throughout both the GGA and RMC blocks below has this same issue and
+    // needs a NULL check before dereferencing (e.g. if (!p) return;).
     p = strchr((char *)p, ',')+1;
     MMFLOAT timef = atof(p);
     uint32_t time = timef;
@@ -557,6 +561,10 @@ void GPS_parse(char *nmea) {
     minute = (time % 10000) / 100;
     seconds = (time % 100);
     milliseconds = fmod(timef, 1.0) * 1000;
+    // TODO: BUG - 'i' is assigned from tm->tm_hour/min/sec on the three lines
+    // below but the value is never read; these assignments are dead code. The
+    // intent may have been to use the local-time values to update GPStime[]
+    // instead of (or alongside) the GPS-derived hour/minute/seconds.
     i=tm->tm_hour;
     GPStime[1]=(hour/10) + 48;
     GPStime[2]=(hour % 10) + 48;
@@ -585,6 +593,14 @@ void GPS_parse(char *nmea) {
       strncpy(degreebuff, p, 2);
       p += 2;
       degreebuff[2] = '\0';
+      // TODO: BUG - 'long degree' and 'long minutes' here shadow the outer
+      // 'int32_t degree' and 'long minutes' (declared ~20 lines above the GGA
+      // block). The outer variables are used for longitude parsing later in this
+      // same RMC block (see the longitude section below), but the latitude
+      // calculation uses these local longs. On LP64 platforms long is 64-bit
+      // while int32_t is 32-bit, so the type used for latitude vs longitude
+      // differs. Remove the 'long' type qualifiers here to use the outer vars
+      // consistently, or rename to avoid the shadowing.
       long degree = atol(degreebuff) * 10000000;
       strncpy(degreebuff, p, 2); // minutes
       p += 3; // skip decimal point
