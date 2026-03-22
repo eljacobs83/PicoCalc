@@ -51,10 +51,10 @@ diff --git a/Kernel/platform/platform-rpipico/Makefile b/Kernel/platform/platfor
 index 1f1fdd280..463882cf4 100644
 --- a/Kernel/platform/platform-rpipico/Makefile
 +++ b/Kernel/platform/platform-rpipico/Makefile
-@@ -8,6 +8,19 @@ ifndef SUBTARGET
- SUBTARGET=pico # set default subtarget
+@@ -8,7 +8,23 @@ ifndef SUBTARGET
+ SUBTARGET=pico2_w # set default subtarget
  endif
- 
+
 +ifeq ($(SUBTARGET),pico)
 +TOTALMEM=160
 +endif
@@ -71,6 +71,10 @@ index 1f1fdd280..463882cf4 100644
  PICOTOOLFLAGS= --family rp2040
  ifeq (${SUBTARGET}, pico2)
  PICOTOOLFLAGS= --family data
+ endif
++ifeq (${SUBTARGET}, pico2_w)
++PICOTOOLFLAGS= --family data
++endif
 @@ -29,7 +42,7 @@ build/fuzix.elf: ../../version.c build/Makefile
  
  build/Makefile: CMakeLists.txt $(wildcard ../../*.[chS]) $(wildcard ../../*/*.[chS])
