@@ -156,11 +156,12 @@ def Prepare(dir, app):
   last = 0
   with open(mapFile, "r") as f:
     for s in f:
-      if s[0] != "S":
+      if s and s[0] != "S":
         a = s.strip().split()
-        this = int(a[1], 16)
-        if this > last:
-          last = this
+        if len(a) >= 2:
+          this = int(a[1], 16)
+          if this > last:
+            last = this
   used = "{:>3}k".format(Size(last, 4 * 1024))
 
   dstFile = os.path.join(dir, app + ".ld")
@@ -241,9 +242,9 @@ SECTIONS
         KEEP (*(.binary_info_header))
         __binary_info_header_end = .;
         KEEP (*(.reset))
-        /* TODO revisit this now memset/memcpy/float in ROM */
-        /* bit of a hack right now to exclude all floating point and time critical (e.g. memset, memcpy) code from
-         * FLASH ... we will include any thing excluded here in .data below by default */
+        /* Intentionally exclude performance-critical library code (memset, memcpy, float) from
+         * FLASH so they are loaded into .data (RAM) at startup for faster execution, even though
+         * RP2040 ROM also provides these functions. */
 /*
         . = ALIGN(4);
     } > FLASH
@@ -560,12 +561,13 @@ def Join(dir, dst, uf2):
       line = line + 1
       if line > 3:
         a = s.strip().split()
-        strt = int(a[0], 16)
-        info += chr((strt >>  0) & 0xFF)
-        info += chr((strt >>  8) & 0xFF)
-        info += chr((strt >> 16) & 0xFF)
-        info += chr((strt >> 24) & 0xFF)
-        info += Pad(a[-1][:12], 12, chr(0))
+        if len(a) >= 2:
+          strt = int(a[0], 16)
+          info += chr((strt >>  0) & 0xFF)
+          info += chr((strt >>  8) & 0xFF)
+          info += chr((strt >> 16) & 0xFF)
+          info += chr((strt >> 24) & 0xFF)
+          info += Pad(a[-1][:12], 12, chr(0))
 
   # Concatenate the files
   dstFile = os.path.join(dir, dst)

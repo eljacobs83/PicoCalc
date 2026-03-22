@@ -27,7 +27,7 @@ git clone  https://github.com/clockworkpi/PicoCalc.git #get patch code
 git apply PicoCalc/Code/FUZIX/fuzix1.1.patch
 export PICO_SDK_PATH=/to/where/your/pico/sdk/is
 
-make TARGET=rpipico SUBTARGET=pico2
+make TARGET=rpipico SUBTARGET=pico2_w
 
 ```
 

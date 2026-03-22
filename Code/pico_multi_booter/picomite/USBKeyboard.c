@@ -1176,7 +1176,9 @@ void process_xbox(uint8_t const* report, uint16_t len, uint8_t n)
 		nunstruct[n].R=report[7];
 	}
 	else {
-		// TODO
+		// Report format for this device is not len==9; additional Xbox-compatible
+		// HID report layouts (e.g. different controller modes or firmware versions)
+		// would need to be decoded here and mapped to nunstruct button bits.
 	}
 	if((b ^ nunstruct[n].x0) & nunstruct[n].x1){
 		nunfoundc[n]=1;

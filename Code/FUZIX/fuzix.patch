@@ -19,12 +19,12 @@ index 0081014c4..aeaaa7a2d 100644
 @@ -1,5 +1,12 @@
  cmake_minimum_required(VERSION 3.12)
  
-+##PICO_BOARD pico PICO_PLATFORM=rp2040
-+set(PICO_BAORD pico)
-+set(PICO_PLATFORM rp2040)
++##PICO_BOARD pico2_w PICO_PLATFORM=rp2350-arm-s
++#set(PICO_BOARD pico)
++#set(PICO_PLATFORM rp2040)
 +
-+#set(PICO_BOARD pico2)
-+#set(PICO_PLATFORM rp2350-arm-s)
++set(PICO_BOARD pico2_w)
++set(PICO_PLATFORM rp2350-arm-s)
 +
  # Pull in SDK (must be before project)
  include(pico_sdk_import.cmake)
@@ -81,15 +81,22 @@ index e7260099d..7328df2f7 100644
  /* We have a GPIO interface */
  #define CONFIG_DEV_GPIO
  /* Enable to make ^Z dump the inode table for debug */
-@@ -65,7 +70,7 @@
+@@ -65,14 +70,14 @@
  #undef CONFIG_FONT8X8
- 
+
  /* Built in NAND flash. Warning, it's unstable. */
 -#define CONFIG_PICO_FLASH
 +//#define CONFIG_PICO_FLASH
- 
+
  /* Program layout */
- 
+
+ #define UDATA_BLKS  3
+ #define UDATA_SIZE  (UDATA_BLKS << BLKSHIFT)
+
+-#define TOTALMEM 160
++#define TOTALMEM 320
+ #define NETMEM 0
+
 @@ -124,7 +129,8 @@ extern uint8_t progbase[USERMEM];
  #define DEV_UART_1_CTS_PIN 8
  #define DEV_UART_1_RTS_PIN 9
