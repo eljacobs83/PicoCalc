@@ -55,9 +55,9 @@ SECTIONS
         KEEP (*(.embedded_block))
         __embedded_block_end = .;
         KEEP (*(.reset))
-        /* TODO revisit this now memset/memcpy/float in ROM */
-        /* bit of a hack right now to exclude all floating point and time critical (e.g. memset, memcpy) code from
-         * FLASH ... we will include any thing excluded here in .data below by default */
+        /* Intentionally exclude performance-critical library code (memset, memcpy, float) from
+         * FLASH so they are loaded into .data (RAM) at startup for faster execution, even though
+         * RP2350 ROM also provides these functions. */
         *(.init)
         *libgcc.a:cmse_nonsecure_call.o
         *(EXCLUDE_FILE(*libgcc.a: *libc.a:*lib_a-mem*.o *libm.a:) .text*)

@@ -40,8 +40,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 /* This section lists the other files that are included in this file.
  */
  
-/* TODO:  Include other files here if needed. */
-
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

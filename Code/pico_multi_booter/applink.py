@@ -241,9 +241,9 @@ SECTIONS
         KEEP (*(.binary_info_header))
         __binary_info_header_end = .;
         KEEP (*(.reset))
-        /* TODO revisit this now memset/memcpy/float in ROM */
-        /* bit of a hack right now to exclude all floating point and time critical (e.g. memset, memcpy) code from
-         * FLASH ... we will include any thing excluded here in .data below by default */
+        /* Intentionally exclude performance-critical library code (memset, memcpy, float) from
+         * FLASH so they are loaded into .data (RAM) at startup for faster execution, even though
+         * RP2040 ROM also provides these functions. */
 /*
         . = ALIGN(4);
     } > FLASH
