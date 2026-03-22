@@ -395,6 +395,12 @@ uint8_t parseHex(char c) {
     // if (c > 'F')
     return 0;
 }
+/* Advance pointer p to the character after the next ',' in the NMEA sentence.
+ * Returns from the enclosing function immediately if no comma is found,
+ * preventing the NULL+1 dereference that the old strchr(...)+1 idiom caused. */
+#define NEXT_GPS_FIELD(p) \
+    do { (p) = strchr((char *)(p), ','); if (!(p)) return; ++(p); } while (0)
+
 void GPS_parse(char *nmea) {
   uint8_t hour, minute, seconds, year=0, month=0, day=0;
   uint16_t __attribute__((unused)) milliseconds;
@@ -439,11 +445,7 @@ void GPS_parse(char *nmea) {
     // found GGA
     char *p = nmea;
     // get time
-    // TODO: BUG - strchr() can return NULL if ',' is not found; adding +1 to
-    // NULL and then dereferencing causes undefined behaviour. Every p = strchr(...)
-    // call throughout both the GGA and RMC blocks below has this same issue and
-    // needs a NULL check before dereferencing (e.g. if (!p) return;).
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     MMFLOAT timef = atof(p);
     uint32_t time = timef;
     hour = time / 10000;
@@ -453,7 +455,7 @@ void GPS_parse(char *nmea) {
     milliseconds = fmod(timef, 1.0) * 1000;
 
     // parse out latitude
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       strncpy(degreebuff, p, 2);
@@ -471,7 +473,7 @@ void GPS_parse(char *nmea) {
       latitudeDegrees += (MMFLOAT)((int)(latitude/100));
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       if (p[0] == 'S') latitudeDegrees *= -1.0;
@@ -483,7 +485,7 @@ void GPS_parse(char *nmea) {
     GPSlatitude=(MMFLOAT)latitudeDegrees;
     
     // parse out longitude
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       strncpy(degreebuff, p, 3);
@@ -501,7 +503,7 @@ void GPS_parse(char *nmea) {
       longitudeDegrees += (MMFLOAT)((int)(longitude/100));
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       if (p[0] == 'W') longitudeDegrees *= -1.0;
@@ -512,36 +514,36 @@ void GPS_parse(char *nmea) {
     }
     GPSlongitude=(MMFLOAT)longitudeDegrees;
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       fixquality = atoi(p);
       GPSfix=(int)fixquality;
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       satellites = atoi(p);
       GPSsatellites=(int)satellites;
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       HDOP = atof(p);
       GPSdop=(MMFLOAT)HDOP;
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       altitude = atof(p);
       GPSaltitude=(MMFLOAT)altitude;
     }
     
-    p = strchr((char *)p, ',')+1;
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       geoidheight = atof(p);
@@ -554,28 +556,21 @@ void GPS_parse(char *nmea) {
     char *p = nmea;
     int i, localGPSvalid=0;
     // get time
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     MMFLOAT timef = atof(p);
     uint32_t time = timef;
     hour = time / 10000;
     minute = (time % 10000) / 100;
     seconds = (time % 100);
     milliseconds = fmod(timef, 1.0) * 1000;
-    // TODO: BUG - 'i' is assigned from tm->tm_hour/min/sec on the three lines
-    // below but the value is never read; these assignments are dead code. The
-    // intent may have been to use the local-time values to update GPStime[]
-    // instead of (or alongside) the GPS-derived hour/minute/seconds.
-    i=tm->tm_hour;
     GPStime[1]=(hour/10) + 48;
     GPStime[2]=(hour % 10) + 48;
-    i=tm->tm_min;
     GPStime[4]=(minute/10) + 48;
     GPStime[5]=(minute % 10) + 48;
-    i=tm->tm_sec;
     GPStime[7]=(seconds/10) + 48;
     GPStime[8]=(seconds % 10) + 48;
 
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (p[0] == 'A') 
       localGPSvalid = 1;
     else if (p[0] == 'V')
@@ -587,33 +582,25 @@ void GPS_parse(char *nmea) {
     }
 
     // parse out latitude
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       strncpy(degreebuff, p, 2);
       p += 2;
       degreebuff[2] = '\0';
-      // TODO: BUG - 'long degree' and 'long minutes' here shadow the outer
-      // 'int32_t degree' and 'long minutes' (declared ~20 lines above the GGA
-      // block). The outer variables are used for longitude parsing later in this
-      // same RMC block (see the longitude section below), but the latitude
-      // calculation uses these local longs. On LP64 platforms long is 64-bit
-      // while int32_t is 32-bit, so the type used for latitude vs longitude
-      // differs. Remove the 'long' type qualifiers here to use the outer vars
-      // consistently, or rename to avoid the shadowing.
-      long degree = atol(degreebuff) * 10000000;
+      degree = atol(degreebuff) * 10000000;
       strncpy(degreebuff, p, 2); // minutes
       p += 3; // skip decimal point
       strncpy(degreebuff + 2, p, 4);
       degreebuff[6] = '\0';
-      long minutes = 50 * atol(degreebuff) / 3;
+      minutes = 50 * atol(degreebuff) / 3;
       latitude_fixed = degree + minutes;
       latitude = degree / 100000 + minutes * 0.000006F;
       latitudeDegrees = (latitude-100*(MMFLOAT)((int)(latitude/100)))/60.0;
       latitudeDegrees += (MMFLOAT)((int)(latitude/100));
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       if (p[0] == 'S') latitudeDegrees *= -1.0;
@@ -625,7 +612,7 @@ void GPS_parse(char *nmea) {
     GPSlatitude=(MMFLOAT)latitudeDegrees;
     
     // parse out longitude
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       strncpy(degreebuff, p, 3);
@@ -643,7 +630,7 @@ void GPS_parse(char *nmea) {
       longitudeDegrees += (MMFLOAT)((int)(longitude/100));
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       if (p[0] == 'W') longitudeDegrees *= -1.0;
@@ -654,7 +641,7 @@ void GPS_parse(char *nmea) {
     }
     GPSlongitude=(MMFLOAT)longitudeDegrees;
     // speed
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       speed = atof(p);
@@ -662,14 +649,14 @@ void GPS_parse(char *nmea) {
     }
     
     // angle
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p)
     {
       angle = atof(p);
       GPStrack=(MMFLOAT)angle;
     }
     
-    p = strchr((char *)p, ',')+1;
+    NEXT_GPS_FIELD(p);
     if (',' != *p && p[6]==',')
     {
       uint32_t fulldate = atoi(p);
